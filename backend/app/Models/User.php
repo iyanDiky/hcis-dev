@@ -2,20 +2,22 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Database\Factories\UserFactory;
+use App\Traits\AuditTrail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password'])]
-#[Hidden(['password', 'remember_token'])]
+#[Fillable(['sdm', 'username', 'password', 'password_expired_at', 'status', 'error_login'])]
+#[Hidden(['password'])]
 class User extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasUuids, SoftDeletes, AuditTrail;
+
+    public const DELETED_AT = 'delete_at';
 
     /**
      * Get the attributes that should be cast.
@@ -25,8 +27,13 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
+            'password_expired_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function sdmRelation()
+    {
+        return $this->belongsTo(Sdm::class, 'sdm', 'id');
     }
 }
