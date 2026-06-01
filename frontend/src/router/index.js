@@ -12,7 +12,7 @@ const router = createRouter({
       path: '/',
       name: 'dashboard',
       component: () => import('../components/DashboardLayout.vue'),
-      meta: { requiresAuth: false }, // for PoC, we might disable this temporarily
+      meta: { requiresAuth: true },
       children: [
         {
           path: '',
@@ -22,6 +22,17 @@ const router = createRouter({
       ]
     }
   ]
+})
+
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('auth_token')
+  if (to.meta.requiresAuth && !token) {
+    next({ name: 'login' })
+  } else if (to.name === 'login' && token) {
+    next({ name: 'dashboard' })
+  } else {
+    next()
+  }
 })
 
 export default router
