@@ -1,91 +1,109 @@
-# Planning: Seeding Database HCIS
+# Planning: Integrasi Fitur Login (Backend & Frontend)
 
-Dokumen ini berisi panduan teknis langkah demi langkah untuk melakukan proses *seeding* awal pada database aplikasi HCIS. *Seeding* ini bertujuan untuk mengisi tabel master dan menyiapkan akun Super Admin agar aplikasi dapat langsung digunakan.
+Dokumen ini berisi panduan teknis untuk mengimplementasikan fitur login secara komprehensif, mulai dari penyesuaian API di sisi Backend (Laravel) hingga integrasi UI di sisi Frontend (Vue 3).
 
-**Harap dibaca dengan teliti sebelum mulai melakukan koding (coding).**
-
----
-
-## 1. Daftar Seeder yang Perlu Dibuat
-
-Buat file seeder terpisah agar rapi, lalu panggil semua di dalam `DatabaseSeeder.php` menggunakan `$this->call([...])`.
-Urutan eksekusi seeder harus diatur dengan benar agar tidak terjadi *Foreign Key Constraint Violation*:
-1. `SdmJenisSeeder`
-2. `WilayahSeeder` (untuk Provinsi & Kota/Kab)
-3. `AdminUserSeeder` (untuk SDM Data, SDM, dan Users)
+Dokumen ini ditulis agar dapat dieksekusi langsung oleh *programmer* atau AI agent.
 
 ---
 
-## 2. Detail Data Seeding
+## 1. Spesifikasi API Login (Backend)
 
-### 2.1. `SdmJenisSeeder`
-Tabel: `sdm_jenis`
-Isi tabel ini dengan jenis SDM berikut. Pastikan untuk meng-generate UUID untuk masing-masing baris.
-- `Admin`
-- `Pegawai`
-- `Pengurus`
-- `Bakat`
+API Login sebenarnya sudah memiliki logika dasar dari iterasi sebelumnya, namun perlu dikonfirmasi dan dirapikan kembali agar benar-benar terhubung dengan data *seed* (`admin` / `password`).
 
-### 2.2. `WilayahSeeder` (Provinsi dan Kota/Kab)
-Tabel: `ms_provinsi` & `ms_kota_kab`
-Sumber Data: File Excel `database_provinsi_kabkota_indonesia.xlsx` di *root* proyek.
+**Endpoint:** `POST /api/login`
 
-**Langkah Implementasi:**
-1. Karena file Excel tersebut tampaknya berformat teks *comma-separated* yang disatukan di kolom pertama (berdasarkan pengecekan struktur: `kode_provinsi,nama_provinsi,kode_kabupaten_kota,nama_kabupaten_kota`), kamu mungkin perlu membacanya baris per baris lalu memecahnya (split/explode) menggunakan koma `,`.
-2. Gunakan `kode_provinsi` untuk mengecek apakah `ms_provinsi` dengan kode/nama tersebut sudah dibuat (jangan buat duplikat). Simpan id `uuid` provinsi yang baru dibuat ke dalam variabel / array memori.
-3. Gunakan relasi `uuid` provinsi tersebut untuk membuat data di `ms_kota_kab` (berdasarkan `kode_kabupaten_kota` dan `nama_kabupaten_kota`).
+### Request Body
+Berupa JSON dengan format:
+```json
+{
+  "username": "admin",
+  "password": "password"
+}
+```
 
-### 2.3. `AdminUserSeeder`
-Tabel: `sdm_data`, `sdm`, dan `users`
-Tujuan: Membuat Super User Admin aplikasi.
+### Response Body: Success (200 OK)
+Mengembalikan data user lengkap (termasuk relasi SDM dan SDM Data) dan sebuah token (bisa dummy token atau Laravel Sanctum token jika sudah di-setup).
+```json
+{
+  "message": "Login sukses",
+  "token": "dummy-token-1234567890",
+  "user": {
+    "id": "uuid-user-123",
+    "username": "admin",
+    "status": 1,
+    "error_login": 0,
+    "sdm_relation": {
+      "id": "uuid-sdm-123",
+      "data": {
+        "id": "uuid-sdm-data-123",
+        "email": "hcis@bankkalsel.co.id",
+        "nama": "Super Admin HCIS"
+      }
+    }
+  }
+}
+```
 
-**Langkah Implementasi:**
-1. Ambil `id` dari `sdm_jenis` dengan `jenis = 'Admin'`.
-2. Buat data dummy di `sdm_data`:
-   - `email`: `hcis@bankkalsel.co.id`
-   - `nik`: (isikan angka unik 16 digit, misal `1234567890123456`)
-   - `nama`: `Super Admin HCIS`
-   - `jk`: `L`
-   - `tempat_lahir`: `Banjarmasin`
-   - `tanggal_lahir`: `1990-01-01`
-   - `agama`: `Islam`
-   - `status_pernikahan`: `B`
-   - `nomor_telp`: `081234567890`
-   - `alamat_ktp`: `Jl. Lambung Mangkurat`
-   - `alamat_domisili`: `Jl. Lambung Mangkurat`
-3. Buat data di `sdm`:
-   - `sdm_data`: (UUID dari langkah 2)
-   - `jenis`: (UUID dari langkah 1)
-4. Buat data di `users`:
-   - `sdm`: (UUID dari langkah 3)
-   - `username`: `admin`
-   - `password`: `Hash::make('password')`
-   - `status`: `1`
-   - `error_login`: `0`
+### Aturan Logika Tambahan (Backend)
+1. **Pengecekan Status Aktif:** Sebelum mengecek password, pastikan `status == 1`. Jika `status == 2` (terblokir) atau `0` (non-aktif), tolak login.
+2. **Hitung Kegagalan Login:** Jika password salah, tambahkan nilai `error_login` + 1 di tabel `users`.
+3. **Blokir Otomatis:** Jika `error_login` mencapai 3 (atau lebih), otomatis ubah `status` menjadi `2` (blokir) dan tolak akses login.
+4. **Reset Kegagalan:** Jika login berhasil (password benar dan `status == 1`), kembalikan nilai `error_login` menjadi `0`.
+5. **Manajemen Multi-Device (Single Login Limit):** 
+   - Tambahkan sebuah *toggle* konfigurasi di `.env` (misal: `SINGLE_DEVICE_LOGIN=true`).
+   - Jika konfigurasi ini aktif (`true`), sistem harus me-*revoke* (menghapus) semua token/sesi aktif sebelumnya milik user tersebut sebelum menerbitkan token yang baru. Dengan ini, *device* yang login lebih awal akan otomatis ter-logout (menerima respons 401 di panggilan API berikutnya).
+   - Jika konfigurasi non-aktif (`false`), user diperbolehkan login bersamaan di banyak device.
+
+### Response Body: Error (401 Unauthorized / 403 Forbidden)
+- **Username tidak ada:**
+  ```json
+  { "message": "Username tidak ditemukan" }
+  ```
+  *(HTTP Status: 401)*
+- **Akun tidak aktif / terblokir:**
+  ```json
+  { "message": "Akun tidak aktif atau diblokir" }
+  ```
+  *(HTTP Status: 403)*
+- **Password salah:**
+  ```json
+  { "message": "Password salah" }
+  ```
+  *(HTTP Status: 401)*
 
 ---
 
-## 3. Penyesuaian Kolom Audit Trail
+## 2. Integrasi Frontend (Vue 3)
 
-Pada struktur database yang ada, setiap tabel memiliki kolom *Audit Trail* (`created_by`, `updated_by`). Kolom ini dikendalikan secara otomatis oleh trait `AuditTrail.php`. 
+Frontend berada di direktori `frontend/`. Framework yang digunakan adalah Vue 3 dengan Vite.
 
-Saat menjalankan seeder (CLI), session `Auth::user()` otomatis kosong, sehingga nilai `created_by` akan diisi secara default dengan string `"System"`.
-Namun, untuk **data Admin**, nilai `created_by`-nya harus mencerminkan Admin itu sendiri (berhubung dia adalah Super User pengelolaan data).
+### Kebutuhan Implementasi Frontend:
+1. **Instalasi HTTP Client (opsional tapi disarankan):**
+   Pastikan menggunakan `axios` atau native `fetch` untuk melakukan HTTP POST request ke `http://localhost:8000/api/login`.
+   *(Catatan CORS: Jika terjadi error CORS, pastikan backend Laravel sudah dikonfigurasi `config/cors.php` untuk mengizinkan origin `http://localhost:5173`)*.
 
-**Instruksi:**
-1. Di dalam `AdminUserSeeder`, setelah entitas `sdm_data`, `sdm`, dan `users` dibuat dan mendapatkan UUID, lakukan eksekusi ulang secara manual (force update).
-2. *Bypass* event Model atau lakukan perintah `DB::table(...)` *query builder* secara langsung pada baris data Super Admin untuk meng-*update* kolom `created_by` dan `updated_by` menggunakan format standar: `{uuid_sdm_admin}-unknown-unknown`.
-3. Biarkan sisa entitas lainnya (provinsi, kota, jenis sdm) tetap memiliki `created_by` `"System"` karena direkam saat inisialisasi awal database.
+2. **State Management (Menyimpan Token):**
+   - Saat response success diterima, simpan `token` dan data `user` (nama, relasi) ke dalam **LocalStorage** atau **SessionStorage** (misal: `localStorage.setItem('auth_token', response.data.token)`).
+   - Opsi lain: Gunakan *Pinia* jika aplikasi sudah setup state management yang kompleks.
+
+3. **Halaman Login (`/login`):**
+   - Buat atau modifikasi komponen form login yang memuat input `username` dan `password`.
+   - Hubungkan form dengan fungsi submit (menggunakan `@submit.prevent`).
+   - Tampilkan indikator *Loading* saat request sedang berjalan.
+   - Tampilkan *Error Message* berwarna merah jika HTTP Response mengembalikan status 401 atau 403. Tampilkan isi `response.data.message` ke layar agar user tahu penyebab gagal login.
+
+4. **Redireksi (Router):**
+   - Setelah login sukses dan token disimpan, gunakan `Vue Router` untuk mengarahkan pengguna ke halaman *Dashboard* (`router.push('/')` atau `/dashboard`).
+   - Berikan *Route Guard* (opsional untuk pengembangan lebih lanjut) agar halaman dashboard tidak bisa diakses jika belum ada token di LocalStorage.
 
 ---
 
-## 4. Instruksi untuk Programmer / AI Agent
+## 3. Instruksi untuk Programmer / AI Agent
 
-**Task List untuk eksekusi:**
-- [ ] Buat file seeder menggunakan perintah `php artisan make:seeder`.
-- [ ] Tambahkan *package* pembaca Excel / CSV (seperti `maatwebsite/excel` atau `fgetcsv` murni PHP) jika diperlukan, untuk parsing file `database_provinsi_kabkota_indonesia.xlsx`.
-- [ ] Tulis logika parsing provinsi & kota/kabupaten ke dalam `WilayahSeeder`. Pastikan data *unique*.
-- [ ] Tulis pembuatan data statis di `SdmJenisSeeder`.
-- [ ] Tulis pembuatan data *super admin* di `AdminUserSeeder`.
-- [ ] Registrasikan ketiga seeder tersebut ke dalam fungsi `run()` di `DatabaseSeeder.php`.
-- [ ] Uji coba dengan menjalankan perintah `php artisan db:seed`. Pastikan tidak ada *error constraint*.
+**Task List untuk Eksekusi:**
+- [ ] Verifikasi ulang fungsi `login()` di `backend/app/Http/Controllers/AuthController.php` apakah strukturnya sudah sesuai dengan spesifikasi di atas. Jika belum, lakukan penyesuaian.
+- [ ] Pastikan konfigurasi CORS di backend Laravel mengizinkan request dari frontend (jika frontend dan backend berjalan di port berbeda).
+- [ ] Buka/buat file komponen halaman login di frontend Vue (misalnya `frontend/src/views/Login.vue`).
+- [ ] Tambahkan logika integrasi API (fetch/axios) di dalam fungsi *handle submit* form login.
+- [ ] Implementasikan penanganan *Success* (simpan token, redirect) dan *Error* (tampilkan pesan).
+- [ ] Lakukan verifikasi manual: Jalankan server frontend `npm run dev` dan server backend, lalu uji coba login menggunakan kredensial `admin` dan `password` hingga berhasil ter-redirect.

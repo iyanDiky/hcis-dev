@@ -57,15 +57,20 @@ class AuthController extends Controller
             ], 401);
         }
 
-        if ($user->status == 0) {
+        if ($user->status == 0 || $user->status == 2) {
             return response()->json([
-                'message' => 'Akun tidak aktif'
+                'message' => 'Akun tidak aktif atau diblokir'
             ], 403);
         }
 
         if (!Hash::check($request->password, $user->password)) {
             // Increment error_login
             $user->error_login += 1;
+            
+            if ($user->error_login >= 3) {
+                $user->status = 2; // block user
+            }
+            
             $user->save();
 
             return response()->json([
@@ -78,12 +83,17 @@ class AuthController extends Controller
             $user->error_login = 0;
             $user->save();
         }
+        
+        // Handle Single Device Login Limit
+        if (env('SINGLE_DEVICE_LOGIN', true)) {
+            $user->tokens()->delete();
+        }
 
         // Load SDM Data relation
         $user->load('sdmRelation.data');
 
-        // Dummy token for PoC
-        $token = 'dummy-token-'.time();
+        // Create Sanctum Token
+        $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'message' => 'Login sukses',

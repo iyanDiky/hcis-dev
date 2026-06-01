@@ -23,12 +23,13 @@ onUnmounted(() => {
 const handleLogin = async () => {
   try {
     const response = await axios.post('http://localhost:8000/api/login', {
-      email: username.value,
+      username: username.value,
       password: password.value
     })
     
     // Store token (dummy or real)
-    localStorage.setItem('token', response.data.token)
+    localStorage.setItem('auth_token', response.data.token)
+    localStorage.setItem('user', JSON.stringify(response.data.user))
     
     // Redirect to dashboard
     router.push('/')
