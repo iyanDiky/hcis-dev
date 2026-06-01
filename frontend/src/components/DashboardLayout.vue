@@ -1,12 +1,13 @@
 <script setup>
 import Navbar from './Navbar.vue'
-// We will just use a simple placeholder for sidebar in this PoC
+import Sidebar from './Sidebar.vue'
 </script>
 
 <template>
+  <Sidebar />
+  <Navbar />
+  
   <div class="page-wrapper">
-    <Navbar />
-    
     <div class="page-content-tab">
       <div class="container-fluid">
         <router-view></router-view>
@@ -22,7 +23,4 @@ import Navbar from './Navbar.vue'
 
 <style scoped>
 /* Optional scoped styling for layout */
-.page-wrapper {
-  padding-top: 70px; /* offset for fixed navbar */
-}
 </style>

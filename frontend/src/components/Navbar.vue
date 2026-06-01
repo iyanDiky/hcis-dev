@@ -1,7 +1,7 @@
 <template>
   <div class="topbar">
       <!-- Navbar -->
-      <nav class="navbar-custom">    
+      <nav class="navbar-custom" id="navbar-custom">    
           <ul class="list-unstyled topbar-nav float-end mb-0">  
               <li class="dropdown">
                   <a class="nav-link dropdown-toggle waves-effect waves-light nav-user" data-bs-toggle="dropdown" href="#" role="button"
@@ -13,7 +13,7 @@
                       <a class="dropdown-item" href="#"><i class="ti ti-user font-16 me-1 align-text-bottom"></i> Profile</a>
                       <a class="dropdown-item" href="#"><i class="ti ti-settings font-16 me-1 align-text-bottom"></i> Settings</a>
                       <div class="dropdown-divider mb-0"></div>
-                      <a class="dropdown-item" href="#" @click.prevent="logout"><i class="ti ti-power font-16 me-1 align-text-bottom"></i> Logout</a>
+                      <a class="dropdown-item" href="javascript:void(0);" @click="logout"><i class="ti ti-power font-16 me-1 align-text-bottom"></i> Logout</a>
                   </div>
               </li>
           </ul><!--end topbar-nav-->
