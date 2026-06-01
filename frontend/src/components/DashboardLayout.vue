@@ -1,6 +1,17 @@
 <script setup>
+import { onMounted } from 'vue'
+import axios from 'axios'
 import Navbar from './Navbar.vue'
 import Sidebar from './Sidebar.vue'
+
+onMounted(async () => {
+  try {
+    // This will trigger the global 401 interceptor if the token was revoked (e.g., logged in from another device)
+    await axios.get('/api/user')
+  } catch (e) {
+    // Error is handled globally
+  }
+})
 </script>
 
 <template>
