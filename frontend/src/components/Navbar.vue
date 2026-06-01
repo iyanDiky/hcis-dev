@@ -6,7 +6,7 @@
               <li class="dropdown">
                   <a class="nav-link dropdown-toggle waves-effect waves-light nav-user" data-bs-toggle="dropdown" href="#" role="button"
                       aria-haspopup="false" aria-expanded="false">
-                      <span class="ms-1 nav-user-name hidden-sm">Admin HCIS</span>
+                      <span class="ms-1 nav-user-name hidden-sm">{{ userName }}</span>
                       <img src="/assets/images/users/user-5.jpg" alt="profile-user" class="rounded-circle thumb-xs" />                                 
                   </a>
                   <div class="dropdown-menu dropdown-menu-end">
@@ -31,11 +31,43 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
 
 const router = useRouter()
-const logout = () => {
-  localStorage.removeItem('token')
-  router.push('/login')
+const userName = ref('Admin HCIS')
+
+onMounted(() => {
+  const user = localStorage.getItem('user')
+  if (user) {
+    try {
+      const parsed = JSON.parse(user)
+      if (parsed.sdm_relation && parsed.sdm_relation.data && parsed.sdm_relation.data.nama) {
+        userName.value = parsed.sdm_relation.data.nama
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+})
+
+const logout = async () => {
+  try {
+    const token = localStorage.getItem('auth_token')
+    if (token) {
+      await axios.post('http://localhost:8000/api/logout', {}, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+    }
+  } catch (error) {
+    console.error('Logout error', error)
+  } finally {
+    localStorage.removeItem('auth_token')
+    localStorage.removeItem('user')
+    router.push('/login')
+  }
 }
 </script>
