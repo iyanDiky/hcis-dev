@@ -4,20 +4,25 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
-      path: '/login',
-      name: 'login',
-      component: () => import('../views/Login.vue')
+      path: '/auth',
+      component: () => import('../layouts/AuthLayout.vue'),
+      children: [
+        {
+          path: '/login',
+          name: 'login',
+          component: () => import('../views/Login.vue')
+        }
+      ]
     },
     {
       path: '/',
-      name: 'dashboard',
-      component: () => import('../components/DashboardLayout.vue'),
+      component: () => import('../layouts/MainLayout.vue'),
       meta: { requiresAuth: true },
       children: [
         {
           path: '',
-          name: 'home',
-          component: () => import('../views/Home.vue')
+          name: 'dashboard',
+          component: () => import('../views/Dashboard.vue')
         }
       ]
     }
