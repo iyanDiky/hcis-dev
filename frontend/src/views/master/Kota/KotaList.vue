@@ -92,11 +92,8 @@
               <div class="modal-body">
                 <div class="mb-3">
                   <label class="form-label">Provinsi</label>
-                  <select class="form-select" id="select-provinsi" style="width: 100%" required>
-                    <option value="" disabled selected>Pilih Provinsi...</option>
-                    <option v-for="prov in provinsiOptions" :key="prov.id" :value="prov.id">
-                      {{ prov.provinsi }}
-                    </option>
+                  <select class="select2 form-control" id="select-provinsi" style="width: 100%" required>
+                    <option value=""></option>
                   </select>
                 </div>
                 <div class="mb-3">
@@ -197,16 +194,27 @@ const toggleSort = (column) => {
 const fetchProvinsiOptions = async () => {
   try {
     const response = await api.post('/provinsi/all')
-    provinsiOptions.value = response.data.data
+    const mappedOptions = response.data.data.map(p => ({
+      id: p.id,
+      text: p.provinsi
+    }))
     
-    // Initialize Select2 after DOM updates
+    // Initialize Select2 with the data
     nextTick(() => {
       const selectEl = window.$('#select-provinsi')
       if (selectEl.length) {
+        // Destroy if already initialized to prevent duplicate data
+        if (selectEl.hasClass("select2-hidden-accessible")) {
+            selectEl.select2('destroy');
+            selectEl.empty();
+            selectEl.append('<option value=""></option>');
+        }
+        
         selectEl.select2({
           dropdownParent: window.$('#kotaModal'),
           placeholder: 'Pilih Provinsi...',
-          allowClear: true
+          allowClear: true,
+          data: mappedOptions
         })
         
         // Sync Select2 change to Vue state
