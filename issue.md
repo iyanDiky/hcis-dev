@@ -1,51 +1,53 @@
-# Planning Document: Pembuatan CRUD ms_provinsi
+# Pembuatan CRUD untuk Master Kota/Kabupaten (ms_kota_kab)
 
-Dokumen ini adalah panduan dan spesifikasi teknis untuk *programmer* atau AI Model dalam mengimplementasikan fitur CRUD untuk tabel `ms_provinsi`. Mohon ikuti seluruh panduan ini secara presisi dan terstruktur.
+## Deskripsi Singkat
+Akan dibuat modul CRUD lengkap (API Backend + Frontend Vue) untuk master data Kota/Kabupaten (`ms_kota_kab`). Sistem ini harus mengikuti standar dan fungsionalitas yang persis sama dengan modul `ms_provinsi` yang sudah ada, dengan tambahan penyesuaian fungsionalitas Dropdown relasi ke provinsi.
 
----
+## Skema Database
+Berdasarkan migration yang sudah ada:
+- **Tabel:** `ms_kota_kab`
+- **Kolom Utama:**
+  - `id` (UUIDv7, Primary Key)
+  - `kota_kabupaten` (String)
+  - `provinsi` (UUID, Foreign Key ke tabel `ms_provinsi`)
+- **Kolom Audit Trail:** `created_at`, `created_by`, `updated_at`, `updated_by`, `delete_at`, `delete_by` (Gunakan implementasi SoftDeletes kustom pada Laravel).
 
-## 1. Spesifikasi Database & Audit Trail
-- **Tabel:** `ms_provinsi`
-- **Primary Key:** HARUS menggunakan **UUID v7** (atau versi terbaru yang optimal untuk *time-based sorting*).
-- **Tipe Data:** Pastikan tipe data pada skema backend/database sesuai dengan kebutuhan (contoh: string untuk nama/kode, boolean/integer untuk status aktif).
-- **Audit Trail:** Sistem WAJIB mengimplementasikan pencatatan *audit trail* dengan benar untuk setiap aktivitas. Kolom standar yang harus ada dan otomatis terisi saat beroperasi:
-  - `created_at`, `created_by`
-  - `updated_at`, `updated_by`
-  - `deleted_at`, `deleted_by` (Gunakan *Soft Delete* agar jejak data tidak hilang permanen).
+## Spesifikasi Backend (Laravel API)
+1. **Model (`MsKotaKab.php`):**
+   - Gunakan trait `HasUuids` (disesuaikan dengan UUIDv7 via `Str::orderedUuid()`).
+   - Implementasikan SoftDeletes kustom yang meng-override konstanta `DELETED_AT` menjadi `delete_at`.
+   - Buat relasi `belongsTo` ke model `MsProvinsi` melalui foreign key `provinsi`.
+2. **Controller (`MsKotaKabController.php`):**
+   - Harus menggunakan metode **POST** untuk semua *endpoint* (metode *RPC-style*).
+   - Buat endpoint berikut:
+     - `POST /api/kota/list`: Untuk Datatable, dukung *pagination* JSON Body, fitur *search* (`ilike` PostgreSQL), dan fitur *sorting* secara *case-insensitive* (`ORDER BY LOWER(kolom)`). Pastikan relasi provinsi di-*eager load* (`with('provinsiRel')`).
+     - `POST /api/kota/detail`: Mengambil data spesifik (beserta data relasi provinsinya).
+     - `POST /api/kota/create`: Menyimpan data baru. Pastikan audit trail tersimpan otomatis dari state autentikasi (`$request->user()->name`).
+     - `POST /api/kota/update`: Mengubah data *existing*. Pastikan audit trail berjalan otomatis.
+     - `POST /api/kota/delete`: Melakukan *SoftDelete*, sebelumnya set field `delete_by` secara eksplisit.
+     - `POST /api/provinsi/all`: Tambahkan endpoint kecil di `MsProvinsiController` (jika belum ada) untuk *dropdown* yang me-*return* seluruh provinsi tanpa paginasi (untuk Select Option).
+3. **Routing (`api.php`):** 
+   - Daftarkan semua *route* baru di dalam *middleware* `auth:sanctum`.
 
-## 2. Spesifikasi API (Backend)
-Berdasarkan ketentuan rancangan arsitektur, seluruh aksi CRUD untuk modul ini **HARUS menggunakan metode POST** (pendekatan menyerupai RPC). Jangan gunakan GET, PUT, PATCH, atau DELETE.
+## Spesifikasi Frontend (Vue 3)
+1. **Komponen Daftar Kota/Kabupaten (`KotaList.vue`):**
+   - **Tabel Server-side:** Menggunakan UI HTML Datatable bawaan template (`table border table-striped table-bordered text-nowrap`).
+   - **Fitur Tabel:** *Pagination*, fitur urutkan (*Sort*), dan fitur *Search Real-time* (menggunakan `@input` dengan *debounce* 500ms).
+   - **Kolom Tabel:** Tampilkan kolom "Kota/Kabupaten", "Provinsi", dan "Aksi" (Tombol Edit dan Hapus).
+2. **Fitur Tambah/Edit (Menggunakan Bootstrap Modal):**
+   - Form *Create* dan *Update* diletakkan di dalam Bootstrap Modal berukuran *medium* dengan efek *static backdrop*.
+   - **Form Fields:** 
+     - Input teks untuk "Nama Kota/Kabupaten".
+     - `<select>` (Dropdown) untuk "Provinsi", ambil datanya dari *endpoint* API provinsi *all* secara dinamis saat komponen di-*mount*.
+3. **Konfirmasi Penghapusan (SweetAlert2):**
+   - Tombol Hapus harus *trigger* dialog konfirmasi dari `SweetAlert2` (*Confirm Dialog* dengan tombol merah dan peringatan tekstual jelas).
+4. **Notifikasi Sukses (SweetAlert2):**
+   - Munculkan *popup* centang hijau otomatis selama 1.5 detik jika Tambah, Edit, atau Hapus berhasil.
+5. **Sidebar Navigation (`Sidebar.vue`):**
+   - Pastikan rute baru (contoh: `/kota`) ditambahkan di daftar `menuItems` di bawah sub-menu **"Master"**.
+   - Logic *active-class* dan *auto-open accordion* sudah siap, hanya perlu tambahkan objek *route*-nya.
 
-- **Endpoints yang diperlukan:**
-  - `POST /api/provinsi/list`  
-    **Fungsi:** Mengambil daftar data provinsi.  
-    **Syarat:** Menerima parameter di *body* untuk `page`, `limit`, dan `search` (wajib mendukung *Server-Side Pagination*).
-  - `POST /api/provinsi/detail`  
-    **Fungsi:** Mengambil data tunggal berdasarkan UUID.
-  - `POST /api/provinsi/create`  
-    **Fungsi:** Menyimpan data baru provinsi ke database.
-  - `POST /api/provinsi/update`  
-    **Fungsi:** Mengubah data provinsi yang sudah ada.
-  - `POST /api/provinsi/delete`  
-    **Fungsi:** Menghapus data secara logis (*Soft Delete*).
-
-## 3. Spesifikasi Frontend (Vue 3)
-- **DataTable Server-Side:** 
-  Daftar data provinsi di frontend harus di-render menggunakan *DataTable* yang mendukung **Server-Side Pagination** atau **Lazy Load**. Data tidak boleh di-load sekaligus semua (*client-side*), melainkan dipanggil per halaman (page) dengan hit API `POST /api/provinsi/list` setiap berpindah halaman atau melakukan pencarian.
-- **Lokasi File:** 
-  Buat komponen di `frontend/src/views/master/Provinsi/` (contoh: `ProvinsiList.vue`).
-- **Sidebar Menu:**
-  Pastikan sidebar navigasi (di file `frontend/src/components/Sidebar.vue`) memiliki entri dinamis berikut:
-  - **Header Menu:** "Data"
-  - **Menu Anak:** "Provinsi" (link ke halaman tabel Provinsi).
-  - Skema menu ini harus siap untuk dihubungkan dengan logic **Hak Akses** masing-masing user nantinya.
-
-## 4. Checklist Instruksi Implementasi
-Instruksi untuk AI / Programmer:
-- [ ] Buat file *Migration* (atau *Schema Definition*) untuk `ms_provinsi` dengan `id` ber-tipe UUID v7 dan kolom audit trail lengkap.
-- [ ] Bangun logic/Controller Backend untuk kelima API `ms_provinsi` menggunakan metode `POST`.
-- [ ] Pastikan seluruh aksi menyertakan validasi *Audit Trail* yang otomatis melacak user yang bersangkutan.
-- [ ] Di Frontend, konfigurasi routing untuk path `/provinsi`.
-- [ ] Buat komponen Vue (`ProvinsiList.vue` dan kelengkapannya) untuk tabel *server-side pagination* dan form Create/Update.
-- [ ] Pastikan menu "Provinsi" di bawah header "Data" ter-render di `Sidebar.vue` dan dapat diakses.
-- [ ] Lakukan testing *End-to-End* dari sisi *client* hingga ke data yang masuk di tabel.
+## Catatan Tambahan Bagi Developer
+- Selalu tiru persis struktur, pola balikan JSON, dan nama fungsi yang ada di `MsProvinsiController.php` dan `ProvinsiList.vue`.
+- Konsisten menggunakan Axios dengan autentikasi *Bearer token*.
+- Perhatikan relasi Foreign Key saat merender data nama Provinsi di Frontend. Pastikan Backend merespon nama provinsinya, bukan sekadar ID provinsinya.

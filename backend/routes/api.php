@@ -19,4 +19,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/provinsi/create', [App\Http\Controllers\MsProvinsiController::class, 'create']);
     Route::post('/provinsi/update', [App\Http\Controllers\MsProvinsiController::class, 'update']);
     Route::post('/provinsi/delete', [App\Http\Controllers\MsProvinsiController::class, 'delete']);
+    Route::post('/provinsi/all', [App\Http\Controllers\MsProvinsiController::class, 'all']);
+
+    // ms_kota_kab routes
+    Route::post('/kota/list', [App\Http\Controllers\MsKotaKabController::class, 'list']);
+    Route::post('/kota/detail', [App\Http\Controllers\MsKotaKabController::class, 'detail']);
+    Route::post('/kota/create', [App\Http\Controllers\MsKotaKabController::class, 'create']);
+    Route::post('/kota/update', [App\Http\Controllers\MsKotaKabController::class, 'update']);
+    Route::post('/kota/delete', [App\Http\Controllers\MsKotaKabController::class, 'delete']);
 });

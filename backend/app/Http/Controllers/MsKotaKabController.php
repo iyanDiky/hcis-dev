@@ -3,13 +3,13 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\MsProvinsi;
+use App\Models\MsKotaKab;
 use Illuminate\Support\Facades\Auth;
 
-class MsProvinsiController extends Controller
+class MsKotaKabController extends Controller
 {
     /**
-     * POST /api/provinsi/list
+     * POST /api/kota/list
      */
     public function list(Request $request)
     {
@@ -17,17 +17,17 @@ class MsProvinsiController extends Controller
         $search = $request->input('search', '');
         $page = $request->input('page', 1);
 
-        $validSortColumns = ['provinsi'];
-        $sortByInput = $request->input('sort_by', 'provinsi');
-        $sortBy = in_array($sortByInput, $validSortColumns) ? $sortByInput : 'provinsi';
+        $validSortColumns = ['kota_kabupaten'];
+        $sortByInput = $request->input('sort_by', 'kota_kabupaten');
+        $sortBy = in_array($sortByInput, $validSortColumns) ? $sortByInput : 'kota_kabupaten';
         
         $sortDirInput = strtolower($request->input('sort_dir', 'asc'));
         $sortDir = in_array($sortDirInput, ['asc', 'desc']) ? $sortDirInput : 'asc';
 
-        $query = MsProvinsi::query();
+        $query = MsKotaKab::with('provinsiRel');
 
         if (!empty($search)) {
-            $query->where('provinsi', 'ilike', '%' . $search . '%');
+            $query->where('kota_kabupaten', 'ilike', '%' . $search . '%');
         }
 
         $query->orderByRaw('LOWER(' . $sortBy . ') ' . $sortDir);
@@ -41,21 +41,7 @@ class MsProvinsiController extends Controller
     }
 
     /**
-     * POST /api/provinsi/all
-     * Endpoint untuk list dropdown tanpa paginasi
-     */
-    public function all(Request $request)
-    {
-        $data = MsProvinsi::orderBy('provinsi', 'asc')->get();
-
-        return response()->json([
-            'status' => 'success',
-            'data' => $data
-        ]);
-    }
-
-    /**
-     * POST /api/provinsi/detail
+     * POST /api/kota/detail
      */
     public function detail(Request $request)
     {
@@ -63,9 +49,9 @@ class MsProvinsiController extends Controller
             'id' => 'required|string|uuid'
         ]);
 
-        $provinsi = MsProvinsi::find($request->id);
+        $kota = MsKotaKab::with('provinsiRel')->find($request->id);
 
-        if (!$provinsi) {
+        if (!$kota) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Data tidak ditemukan'
@@ -74,22 +60,24 @@ class MsProvinsiController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'data' => $provinsi
+            'data' => $kota
         ]);
     }
 
     /**
-     * POST /api/provinsi/create
+     * POST /api/kota/create
      */
     public function create(Request $request)
     {
         $request->validate([
-            'provinsi' => 'required|string|max:255'
+            'kota_kabupaten' => 'required|string|max:255',
+            'provinsi' => 'required|string|uuid'
         ]);
 
         $user = $request->user();
 
-        $provinsi = MsProvinsi::create([
+        $kota = MsKotaKab::create([
+            'kota_kabupaten' => $request->kota_kabupaten,
             'provinsi' => $request->provinsi,
             'created_by' => $user ? $user->name : 'system',
         ]);
@@ -97,23 +85,24 @@ class MsProvinsiController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Data berhasil disimpan',
-            'data' => $provinsi
+            'data' => $kota
         ]);
     }
 
     /**
-     * POST /api/provinsi/update
+     * POST /api/kota/update
      */
     public function update(Request $request)
     {
         $request->validate([
             'id' => 'required|string|uuid',
-            'provinsi' => 'required|string|max:255'
+            'kota_kabupaten' => 'required|string|max:255',
+            'provinsi' => 'required|string|uuid'
         ]);
 
-        $provinsi = MsProvinsi::find($request->id);
+        $kota = MsKotaKab::find($request->id);
 
-        if (!$provinsi) {
+        if (!$kota) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Data tidak ditemukan'
@@ -122,7 +111,8 @@ class MsProvinsiController extends Controller
 
         $user = $request->user();
 
-        $provinsi->update([
+        $kota->update([
+            'kota_kabupaten' => $request->kota_kabupaten,
             'provinsi' => $request->provinsi,
             'updated_by' => $user ? $user->name : 'system',
         ]);
@@ -130,12 +120,12 @@ class MsProvinsiController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Data berhasil diupdate',
-            'data' => $provinsi
+            'data' => $kota
         ]);
     }
 
     /**
-     * POST /api/provinsi/delete
+     * POST /api/kota/delete
      */
     public function delete(Request $request)
     {
@@ -143,9 +133,9 @@ class MsProvinsiController extends Controller
             'id' => 'required|string|uuid'
         ]);
 
-        $provinsi = MsProvinsi::find($request->id);
+        $kota = MsKotaKab::find($request->id);
 
-        if (!$provinsi) {
+        if (!$kota) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Data tidak ditemukan'
@@ -155,10 +145,10 @@ class MsProvinsiController extends Controller
         $user = $request->user();
 
         // Update delete_by directly before soft deleting
-        $provinsi->delete_by = $user ? $user->name : 'system';
-        $provinsi->save();
+        $kota->delete_by = $user ? $user->name : 'system';
+        $kota->save();
 
-        $provinsi->delete();
+        $kota->delete();
 
         return response()->json([
             'status' => 'success',

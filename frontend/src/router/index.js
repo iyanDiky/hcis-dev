@@ -25,9 +25,14 @@ const router = createRouter({
           component: () => import('../views/Dashboard.vue')
         },
         {
-          path: 'provinsi',
-          name: 'ProvinsiList',
+          path: '/provinsi',
+          name: 'Provinsi',
           component: () => import('../views/master/Provinsi/ProvinsiList.vue')
+        },
+        {
+          path: '/kota',
+          name: 'KotaKabupaten',
+          component: () => import('../views/master/Kota/KotaList.vue')
         }
       ]
     }
