@@ -89,6 +89,11 @@ const menuItems = ref([
         title: 'Provinsi',
         path: '/provinsi',
         icon: 'ti ti-circle'
+      },
+      {
+        title: 'Kota/Kabupaten',
+        path: '/kota',
+        icon: 'ti ti-circle'
       }
     ]
   }
