@@ -92,8 +92,8 @@
               <div class="modal-body">
                 <div class="mb-3">
                   <label class="form-label">Provinsi</label>
-                  <select class="form-select" v-model="formData.provinsi" required>
-                    <option value="" disabled>Pilih Provinsi...</option>
+                  <select class="form-select" id="select-provinsi" style="width: 100%" required>
+                    <option value="" disabled selected>Pilih Provinsi...</option>
                     <option v-for="prov in provinsiOptions" :key="prov.id" :value="prov.id">
                       {{ prov.provinsi }}
                     </option>
@@ -119,7 +119,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, nextTick } from 'vue'
 import axios from 'axios'
 import Swal from 'sweetalert2'
 import 'sweetalert2/dist/sweetalert2.min.css'
@@ -198,6 +198,23 @@ const fetchProvinsiOptions = async () => {
   try {
     const response = await api.post('/provinsi/all')
     provinsiOptions.value = response.data.data
+    
+    // Initialize Select2 after DOM updates
+    nextTick(() => {
+      const selectEl = window.$('#select-provinsi')
+      if (selectEl.length) {
+        selectEl.select2({
+          dropdownParent: window.$('#kotaModal'),
+          placeholder: 'Pilih Provinsi...',
+          allowClear: true
+        })
+        
+        // Sync Select2 change to Vue state
+        selectEl.on('change', function () {
+          formData.value.provinsi = window.$(this).val()
+        })
+      }
+    })
   } catch (error) {
     console.error('Error fetching provinsi options:', error)
   }
@@ -250,6 +267,13 @@ const openForm = (item = null) => {
       provinsi: ''
     }
   }
+  
+  // Sync state to Select2 visually
+  nextTick(() => {
+    const val = formData.value.provinsi || ''
+    window.$('#select-provinsi').val(val).trigger('change')
+  })
+  
   if (formModal) {
     formModal.show()
   }
@@ -261,6 +285,7 @@ const closeForm = () => {
   }
   setTimeout(() => {
     formData.value = { id: null, kota_kabupaten: '', provinsi: '' }
+    window.$('#select-provinsi').val('').trigger('change')
   }, 300) // reset after animation
 }
 
