@@ -17,20 +17,29 @@ class MsKotaKabController extends Controller
         $search = $request->input('search', '');
         $page = $request->input('page', 1);
 
-        $validSortColumns = ['kota_kabupaten'];
+        $validSortColumns = ['kota_kabupaten', 'provinsi'];
         $sortByInput = $request->input('sort_by', 'kota_kabupaten');
         $sortBy = in_array($sortByInput, $validSortColumns) ? $sortByInput : 'kota_kabupaten';
         
         $sortDirInput = strtolower($request->input('sort_dir', 'asc'));
         $sortDir = in_array($sortDirInput, ['asc', 'desc']) ? $sortDirInput : 'asc';
 
-        $query = MsKotaKab::with('provinsiRel');
+        $query = MsKotaKab::select('ms_kota_kab.*')
+            ->leftJoin('ms_provinsi', 'ms_kota_kab.provinsi', '=', 'ms_provinsi.id')
+            ->with('provinsiRel');
 
         if (!empty($search)) {
-            $query->where('kota_kabupaten', 'ilike', '%' . $search . '%');
+            $query->where(function($q) use ($search) {
+                $q->where('ms_kota_kab.kota_kabupaten', 'ilike', '%' . $search . '%')
+                  ->orWhere('ms_provinsi.provinsi', 'ilike', '%' . $search . '%');
+            });
         }
 
-        $query->orderByRaw('LOWER(' . $sortBy . ') ' . $sortDir);
+        if ($sortBy === 'provinsi') {
+            $query->orderByRaw('LOWER(ms_provinsi.provinsi) ' . $sortDir);
+        } else {
+            $query->orderByRaw('LOWER(ms_kota_kab.' . $sortBy . ') ' . $sortDir);
+        }
 
         $data = $query->paginate($limit, ['*'], 'page', $page);
 

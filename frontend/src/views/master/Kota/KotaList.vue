@@ -34,7 +34,11 @@
                     <i v-if="params.sort_by === 'kota_kabupaten'" :class="params.sort_dir === 'asc' ? 'ti ti-sort-ascending' : 'ti ti-sort-descending'" class="ms-1"></i>
                     <i v-else class="ti ti-arrows-sort text-muted ms-1"></i>
                   </th>
-                  <th>Provinsi</th>
+                  <th @click="toggleSort('provinsi')" style="cursor: pointer;" class="user-select-none">
+                    Provinsi
+                    <i v-if="params.sort_by === 'provinsi'" :class="params.sort_dir === 'asc' ? 'ti ti-sort-ascending' : 'ti ti-sort-descending'" class="ms-1"></i>
+                    <i v-else class="ti ti-arrows-sort text-muted ms-1"></i>
+                  </th>
                   <th>Aksi</th>
                 </tr>
                 <!-- end row -->
