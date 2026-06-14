@@ -23,6 +23,11 @@ const router = createRouter({
           path: '',
           name: 'dashboard',
           component: () => import('../views/Dashboard.vue')
+        },
+        {
+          path: 'provinsi',
+          name: 'ProvinsiList',
+          component: () => import('../views/master/Provinsi/ProvinsiList.vue')
         }
       ]
     }

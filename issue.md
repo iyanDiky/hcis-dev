@@ -1,55 +1,51 @@
-# Planning: Slicing Template Frontend (Modernize) ke Vue 3
+# Planning Document: Pembuatan CRUD ms_provinsi
 
-Dokumen ini berisi panduan teknis dan langkah-langkah untuk melakukan proses *slicing* template HTML **Modernize** yang berada di direktori `template_frontend/` ke dalam project Vue 3 (`frontend/`).
-
-Dokumen ini ditulis agar dapat dieksekusi langsung oleh *programmer* atau AI agent.
+Dokumen ini adalah panduan dan spesifikasi teknis untuk *programmer* atau AI Model dalam mengimplementasikan fitur CRUD untuk tabel `ms_provinsi`. Mohon ikuti seluruh panduan ini secara presisi dan terstruktur.
 
 ---
 
-## 1. Analisis Struktur Template
-Sistem akan menggunakan template **Modernize**. Berdasarkan struktur di `template_frontend/`:
-- **Assets Template:** Berada di `template_frontend/package/dist/` (terdiri dari folder `css`, `js`, `images`, dan `libs`).
-- **File HTML Utama (Dashboard):** Berada di `template_frontend/package/html/main/` (misalnya `index.html` untuk dashboard, `authentication-login.html` untuk halaman auth).
+## 1. Spesifikasi Database & Audit Trail
+- **Tabel:** `ms_provinsi`
+- **Primary Key:** HARUS menggunakan **UUID v7** (atau versi terbaru yang optimal untuk *time-based sorting*).
+- **Tipe Data:** Pastikan tipe data pada skema backend/database sesuai dengan kebutuhan (contoh: string untuk nama/kode, boolean/integer untuk status aktif).
+- **Audit Trail:** Sistem WAJIB mengimplementasikan pencatatan *audit trail* dengan benar untuk setiap aktivitas. Kolom standar yang harus ada dan otomatis terisi saat beroperasi:
+  - `created_at`, `created_by`
+  - `updated_at`, `updated_by`
+  - `deleted_at`, `deleted_by` (Gunakan *Soft Delete* agar jejak data tidak hilang permanen).
 
-## 2. Manajemen Assets (CSS, JS, Images, Libs)
-- **Penghapusan Assets Lama:**
-  - Hapus seluruh isi default atau bawaan dari folder `frontend/src/assets/` (misal: logo vue, base.css) dan `frontend/public/` (jika ada) agar tidak memberatkan disk space sebelum memasukkan assets baru.
-- **Tujuan Pindahan:**
-  - Salin seluruh folder `libs`, `images`, dan file `js` pendukung dari `template_frontend/package/dist/` ke dalam folder `frontend/public/` (misal: `frontend/public/assets/`).
-  - Salin file CSS utama (seperti `style.min.css`) ke dalam `frontend/src/assets/css/` atau tetap letakkan di `public/assets/css/` jika tidak perlu diproses ulang oleh Vite.
-- **Konfigurasi Global (`index.html`):** Update file `frontend/index.html` untuk memuat CSS dan JS global dari template (seperti bootstrap, app.min.js, dll). Pastikan path *resource* sudah sesuai (menggunakan `/assets/...`).
+## 2. Spesifikasi API (Backend)
+Berdasarkan ketentuan rancangan arsitektur, seluruh aksi CRUD untuk modul ini **HARUS menggunakan metode POST** (pendekatan menyerupai RPC). Jangan gunakan GET, PUT, PATCH, atau DELETE.
 
-## 3. Pembuatan Layouts (Vue 3)
-Pisahkan struktur dasar HTML menjadi layout Vue yang *reusable* di dalam folder `frontend/src/layouts/`:
+- **Endpoints yang diperlukan:**
+  - `POST /api/provinsi/list`  
+    **Fungsi:** Mengambil daftar data provinsi.  
+    **Syarat:** Menerima parameter di *body* untuk `page`, `limit`, dan `search` (wajib mendukung *Server-Side Pagination*).
+  - `POST /api/provinsi/detail`  
+    **Fungsi:** Mengambil data tunggal berdasarkan UUID.
+  - `POST /api/provinsi/create`  
+    **Fungsi:** Menyimpan data baru provinsi ke database.
+  - `POST /api/provinsi/update`  
+    **Fungsi:** Mengubah data provinsi yang sudah ada.
+  - `POST /api/provinsi/delete`  
+    **Fungsi:** Menghapus data secara logis (*Soft Delete*).
 
-### 3.1. AuthLayout.vue
-- **Tujuan:** Digunakan untuk halaman Login, Register, Forgot Password.
-- **Referensi File:** `template_frontend/package/html/main/authentication-login.html`.
-- **Implementasi:** Hanya memuat wrapper dasar (seperti card form di tengah layar) tanpa *sidebar* atau *navbar* kompleks. Menempatkan `<router-view />` untuk merender komponen auth.
+## 3. Spesifikasi Frontend (Vue 3)
+- **DataTable Server-Side:** 
+  Daftar data provinsi di frontend harus di-render menggunakan *DataTable* yang mendukung **Server-Side Pagination** atau **Lazy Load**. Data tidak boleh di-load sekaligus semua (*client-side*), melainkan dipanggil per halaman (page) dengan hit API `POST /api/provinsi/list` setiap berpindah halaman atau melakukan pencarian.
+- **Lokasi File:** 
+  Buat komponen di `frontend/src/views/master/Provinsi/` (contoh: `ProvinsiList.vue`).
+- **Sidebar Menu:**
+  Pastikan sidebar navigasi (di file `frontend/src/components/Sidebar.vue`) memiliki entri dinamis berikut:
+  - **Header Menu:** "Data"
+  - **Menu Anak:** "Provinsi" (link ke halaman tabel Provinsi).
+  - Skema menu ini harus siap untuk dihubungkan dengan logic **Hak Akses** masing-masing user nantinya.
 
-### 3.2. MainLayout.vue
-- **Tujuan:** Digunakan untuk halaman Dashboard dan halaman dalam sistem lainnya yang membutuhkan navigasi.
-- **Referensi File:** `template_frontend/package/html/main/index.html`.
-- **Komponen Slicing di MainLayout:**
-  - **`Sidebar.vue`**: Menu navigasi sebelah kiri. Pastikan script menu (seperti metismenu/simplebar) berjalan atau disesuaikan dengan Vue.
-  - **`Header.vue`**: Topbar yang memuat profil user, tombol hamburger untuk toggle sidebar, dan notifikasi.
-  - **`<router-view />`**: Tempat me-render konten halaman dinamis di area utama.
-
-## 4. Slicing Halaman (Views)
-- **Halaman Login (`frontend/src/views/Login.vue`):**
-  - Gunakan *class* dan struktur form dari `authentication-login.html`.
-  - Hubungkan *input* form dengan state Vue (`v-model`).
-- **Halaman Dashboard (`frontend/src/views/Dashboard.vue`):**
-  - Ambil bagian struktur konten utama (widget, grafik, tabel) dari `index.html`.
-  - Pastikan fungsionalitas UI bawaan template (seperti *dropdown*, *offcanvas*) tetap berfungsi dengan baik.
-
-## 5. Checklist Eksekusi Slicing
-- [ ] Hapus seluruh assets lama di folder `frontend/src/assets/` dan `frontend/public/` untuk menghemat kapasitas disk.
-- [ ] Copy assets (CSS, JS, Images, Libs) dari `template_frontend/package/dist/` ke `frontend/public/assets/`.
-- [ ] Sesuaikan path *import/link* (CSS & JS) pada `frontend/index.html`.
-- [ ] Buat layout `AuthLayout.vue` dari struktur `authentication-login.html`.
-- [ ] Buat layout `MainLayout.vue` lengkap dengan komponen `Sidebar.vue` dan `Header.vue` berdasarkan `index.html`.
-- [ ] Update konfigurasi Vue Router (`frontend/src/router/index.js` atau sejenisnya) agar menggunakan `MainLayout` dan `AuthLayout` sesuai halamannya.
-- [ ] Buat dan sesuaikan struktur UI di `Login.vue`.
-- [ ] Buat dan sesuaikan struktur UI di `Dashboard.vue`.
-- [ ] Lakukan verifikasi manual dengan menjalankan server frontend (`npm run dev`) dan pastikan tampilan responsif serta styling berjalan sesuai template aslinya.
+## 4. Checklist Instruksi Implementasi
+Instruksi untuk AI / Programmer:
+- [ ] Buat file *Migration* (atau *Schema Definition*) untuk `ms_provinsi` dengan `id` ber-tipe UUID v7 dan kolom audit trail lengkap.
+- [ ] Bangun logic/Controller Backend untuk kelima API `ms_provinsi` menggunakan metode `POST`.
+- [ ] Pastikan seluruh aksi menyertakan validasi *Audit Trail* yang otomatis melacak user yang bersangkutan.
+- [ ] Di Frontend, konfigurasi routing untuk path `/provinsi`.
+- [ ] Buat komponen Vue (`ProvinsiList.vue` dan kelengkapannya) untuk tabel *server-side pagination* dan form Create/Update.
+- [ ] Pastikan menu "Provinsi" di bawah header "Data" ter-render di `Sidebar.vue` dan dapat diakses.
+- [ ] Lakukan testing *End-to-End* dari sisi *client* hingga ke data yang masuk di tabel.
