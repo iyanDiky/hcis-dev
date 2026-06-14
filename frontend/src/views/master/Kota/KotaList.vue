@@ -92,8 +92,11 @@
               <div class="modal-body">
                 <div class="mb-3">
                   <label class="form-label">Provinsi</label>
-                  <select class="select2 form-control" id="select-provinsi" style="width: 100%" required>
-                    <option value=""></option>
+                  <select class="select2 form-control" id="select-provinsi" style="width: 100%; height: 36px" required>
+                    <option value="" disabled selected>Pilih Provinsi...</option>
+                    <option v-for="prov in provinsiOptions" :key="prov.id" :value="prov.id">
+                      {{ prov.provinsi }}
+                    </option>
                   </select>
                 </div>
                 <div class="mb-3">
@@ -194,35 +197,7 @@ const toggleSort = (column) => {
 const fetchProvinsiOptions = async () => {
   try {
     const response = await api.post('/provinsi/all')
-    const mappedOptions = response.data.data.map(p => ({
-      id: p.id,
-      text: p.provinsi
-    }))
-    
-    // Initialize Select2 with the data
-    nextTick(() => {
-      const selectEl = window.$('#select-provinsi')
-      if (selectEl.length) {
-        // Destroy if already initialized to prevent duplicate data
-        if (selectEl.hasClass("select2-hidden-accessible")) {
-            selectEl.select2('destroy');
-            selectEl.empty();
-            selectEl.append('<option value=""></option>');
-        }
-        
-        selectEl.select2({
-          dropdownParent: window.$('#kotaModal'),
-          placeholder: 'Pilih Provinsi...',
-          allowClear: true,
-          data: mappedOptions
-        })
-        
-        // Sync Select2 change to Vue state
-        selectEl.on('change', function () {
-          formData.value.provinsi = window.$(this).val()
-        })
-      }
-    })
+    provinsiOptions.value = response.data.data
   } catch (error) {
     console.error('Error fetching provinsi options:', error)
   }
@@ -276,15 +251,28 @@ const openForm = (item = null) => {
     }
   }
   
-  // Sync state to Select2 visually
-  nextTick(() => {
-    const val = formData.value.provinsi || ''
-    window.$('#select-provinsi').val(val).trigger('change')
-  })
-  
   if (formModal) {
     formModal.show()
   }
+
+  // Initialize and Sync state to Select2 visually after modal opens
+  setTimeout(() => {
+    const selectEl = window.$('#select-provinsi')
+    
+    if (!selectEl.hasClass("select2-hidden-accessible")) {
+      selectEl.select2({
+        dropdownParent: window.$('#kotaModal'),
+        placeholder: 'Pilih Provinsi...'
+      })
+      
+      selectEl.on('change', function () {
+        formData.value.provinsi = window.$(this).val()
+      })
+    }
+    
+    const val = formData.value.provinsi || ''
+    selectEl.val(val).trigger('change')
+  }, 200)
 }
 
 const closeForm = () => {
