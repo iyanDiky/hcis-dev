@@ -96,6 +96,19 @@ const menuItems = ref([
         icon: 'ti ti-circle'
       }
     ]
+  },
+  {
+    type: 'dropdown',
+    title: 'SDM',
+    icon: 'ti ti-users',
+    isOpen: false,
+    children: [
+      {
+        title: 'Jenis SDM',
+        path: '/sdm-jenis',
+        icon: 'ti ti-circle'
+      }
+    ]
   }
 ]);
 

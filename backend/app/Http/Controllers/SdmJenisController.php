@@ -3,13 +3,13 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\MsKotaKab;
+use App\Models\SdmJenis;
 use Illuminate\Support\Facades\Auth;
 
-class MsKotaKabController extends Controller
+class SdmJenisController extends Controller
 {
     /**
-     * POST /api/kota/list
+     * POST /api/sdm-jenis/list
      */
     public function list(Request $request)
     {
@@ -17,29 +17,20 @@ class MsKotaKabController extends Controller
         $search = $request->input('search', '');
         $page = $request->input('page', 1);
 
-        $validSortColumns = ['kota_kabupaten', 'provinsi'];
-        $sortByInput = $request->input('sort_by', 'kota_kabupaten');
-        $sortBy = in_array($sortByInput, $validSortColumns) ? $sortByInput : 'kota_kabupaten';
+        $validSortColumns = ['jenis'];
+        $sortByInput = $request->input('sort_by', 'jenis');
+        $sortBy = in_array($sortByInput, $validSortColumns) ? $sortByInput : 'jenis';
         
         $sortDirInput = strtolower($request->input('sort_dir', 'asc'));
         $sortDir = in_array($sortDirInput, ['asc', 'desc']) ? $sortDirInput : 'asc';
 
-        $query = MsKotaKab::select('ms_kota_kab.*')
-            ->leftJoin('ms_provinsi', 'ms_kota_kab.provinsi', '=', 'ms_provinsi.id')
-            ->with('provinsiRel');
+        $query = SdmJenis::query();
 
         if (!empty($search)) {
-            $query->where(function($q) use ($search) {
-                $q->where('ms_kota_kab.kota_kabupaten', 'ilike', '%' . $search . '%')
-                  ->orWhere('ms_provinsi.provinsi', 'ilike', '%' . $search . '%');
-            });
+            $query->where('jenis', 'ilike', '%' . $search . '%');
         }
 
-        if ($sortBy === 'provinsi') {
-            $query->orderByRaw('LOWER(ms_provinsi.provinsi) ' . $sortDir);
-        } else {
-            $query->orderByRaw('LOWER(ms_kota_kab.' . $sortBy . ') ' . $sortDir);
-        }
+        $query->orderByRaw('LOWER(' . $sortBy . ') ' . $sortDir);
 
         $data = $query->paginate($limit, ['*'], 'page', $page);
 
@@ -50,7 +41,21 @@ class MsKotaKabController extends Controller
     }
 
     /**
-     * POST /api/kota/detail
+     * POST /api/sdm-jenis/all
+     * Endpoint untuk list dropdown tanpa paginasi
+     */
+    public function all(Request $request)
+    {
+        $data = SdmJenis::orderBy('jenis', 'asc')->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $data
+        ]);
+    }
+
+    /**
+     * POST /api/sdm-jenis/detail
      */
     public function detail(Request $request)
     {
@@ -58,9 +63,9 @@ class MsKotaKabController extends Controller
             'id' => 'required|string|uuid'
         ]);
 
-        $kota = MsKotaKab::with('provinsiRel')->find($request->id);
+        $sdmJenis = SdmJenis::find($request->id);
 
-        if (!$kota) {
+        if (!$sdmJenis) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Data tidak ditemukan'
@@ -69,49 +74,48 @@ class MsKotaKabController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'data' => $kota
+            'data' => $sdmJenis
         ]);
     }
 
     /**
-     * POST /api/kota/create
+     * POST /api/sdm-jenis/create
      */
     public function create(Request $request)
     {
         $request->validate([
-            'kota_kabupaten' => 'required|string|max:255',
-            'provinsi' => 'required|string|uuid'
+            'jenis' => 'required|string|max:255'
         ]);
 
         $user = $request->user();
 
-        $kota = MsKotaKab::create([
-            'kota_kabupaten' => $request->kota_kabupaten,
-            'provinsi' => $request->provinsi,
+        $sdmJenis = SdmJenis::create([
+            'jenis' => $request->jenis,
+            // AuditTrail trait will handle created_by/updated_by if configured properly,
+            // but just to be safe and match MsProvinsiController behavior if not:
             'created_by' => $user ? $user->name : 'system',
         ]);
 
         return response()->json([
             'status' => 'success',
             'message' => 'Data berhasil disimpan',
-            'data' => $kota
+            'data' => $sdmJenis
         ]);
     }
 
     /**
-     * POST /api/kota/update
+     * POST /api/sdm-jenis/update
      */
     public function update(Request $request)
     {
         $request->validate([
             'id' => 'required|string|uuid',
-            'kota_kabupaten' => 'required|string|max:255',
-            'provinsi' => 'required|string|uuid'
+            'jenis' => 'required|string|max:255'
         ]);
 
-        $kota = MsKotaKab::find($request->id);
+        $sdmJenis = SdmJenis::find($request->id);
 
-        if (!$kota) {
+        if (!$sdmJenis) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Data tidak ditemukan'
@@ -120,21 +124,20 @@ class MsKotaKabController extends Controller
 
         $user = $request->user();
 
-        $kota->update([
-            'kota_kabupaten' => $request->kota_kabupaten,
-            'provinsi' => $request->provinsi,
+        $sdmJenis->update([
+            'jenis' => $request->jenis,
             'updated_by' => $user ? $user->name : 'system',
         ]);
 
         return response()->json([
             'status' => 'success',
             'message' => 'Data berhasil diupdate',
-            'data' => $kota
+            'data' => $sdmJenis
         ]);
     }
 
     /**
-     * POST /api/kota/delete
+     * POST /api/sdm-jenis/delete
      */
     public function delete(Request $request)
     {
@@ -142,9 +145,9 @@ class MsKotaKabController extends Controller
             'id' => 'required|string|uuid'
         ]);
 
-        $kota = MsKotaKab::find($request->id);
+        $sdmJenis = SdmJenis::find($request->id);
 
-        if (!$kota) {
+        if (!$sdmJenis) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Data tidak ditemukan'
@@ -154,10 +157,11 @@ class MsKotaKabController extends Controller
         $user = $request->user();
 
         // Update delete_by directly before soft deleting
-        $kota->delete_by = $user ? $user->name : 'system';
-        $kota->save();
+        // If AuditTrail trait is present, it might handle this, but let's be explicit
+        $sdmJenis->delete_by = $user ? $user->name : 'system';
+        $sdmJenis->save();
 
-        $kota->delete();
+        $sdmJenis->delete();
 
         return response()->json([
             'status' => 'success',

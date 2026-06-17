@@ -10,15 +10,23 @@ class SdmJenisSeeder extends Seeder
 {
     public function run(): void
     {
-        $jenis = ['Admin', 'Pegawai', 'Pengurus', 'Bakat'];
+        $jenisList = [
+            "organik",
+            "bakat",
+            "tenaga alih daya",
+            "pengurus",
+            "dewan komite",
+            "dewan pengawas syariah",
+            "staf khusus"
+        ];
 
-        foreach ($jenis as $j) {
+        foreach ($jenisList as $j) {
             SdmJenis::firstOrCreate(
                 ['jenis' => $j],
                 [
-                    'id' => Str::uuid(),
-                    'created_by' => 'System',
-                    'updated_by' => 'System'
+                    'id' => Str::orderedUuid()->toString(),
+                    'created_by' => 'system',
+                    'updated_by' => 'system'
                 ]
             );
         }

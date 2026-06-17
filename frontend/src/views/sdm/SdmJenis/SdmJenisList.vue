@@ -4,9 +4,9 @@
       <div class="card">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-center mb-4">
-            <h5 class="card-title fw-semibold mb-0">Data Kota / Kabupaten</h5>
+            <h5 class="card-title fw-semibold mb-0">Data Jenis SDM</h5>
             <button @click="openForm()" class="btn btn-primary btn-sm">
-              <i class="ti ti-plus"></i> Tambah Kota/Kabupaten
+              <i class="ti ti-plus"></i> Tambah Jenis SDM
             </button>
           </div>
 
@@ -20,7 +20,7 @@
               </select>
             </div>
             <div>
-              <input type="text" v-model="params.search" @input="onSearchInput" class="form-control form-control-sm" placeholder="Cari kota/kabupaten...">
+              <input type="text" v-model="params.search" @input="onSearchInput" class="form-control form-control-sm" placeholder="Cari jenis sdm...">
             </div>
           </div>
 
@@ -29,14 +29,9 @@
               <thead>
                 <!-- start row -->
                 <tr>
-                  <th @click="toggleSort('kota_kabupaten')" style="cursor: pointer;" class="user-select-none">
-                    Kota/Kabupaten
-                    <i v-if="params.sort_by === 'kota_kabupaten'" :class="params.sort_dir === 'asc' ? 'ti ti-sort-ascending' : 'ti ti-sort-descending'" class="ms-1"></i>
-                    <i v-else class="ti ti-arrows-sort text-muted ms-1"></i>
-                  </th>
-                  <th @click="toggleSort('provinsi')" style="cursor: pointer;" class="user-select-none">
-                    Provinsi
-                    <i v-if="params.sort_by === 'provinsi'" :class="params.sort_dir === 'asc' ? 'ti ti-sort-ascending' : 'ti ti-sort-descending'" class="ms-1"></i>
+                  <th @click="toggleSort('jenis')" style="cursor: pointer;" class="user-select-none">
+                    Jenis SDM
+                    <i v-if="params.sort_by === 'jenis'" :class="params.sort_dir === 'asc' ? 'ti ti-sort-ascending' : 'ti ti-sort-descending'" class="ms-1"></i>
                     <i v-else class="ti ti-arrows-sort text-muted ms-1"></i>
                   </th>
                   <th>Aksi</th>
@@ -45,14 +40,13 @@
               </thead>
               <tbody>
                 <tr v-if="loading">
-                  <td colspan="3" class="text-center py-4">Loading...</td>
+                  <td colspan="2" class="text-center py-4">Loading...</td>
                 </tr>
                 <tr v-else-if="items.length === 0">
-                  <td colspan="3" class="text-center py-4">Data tidak ditemukan.</td>
+                  <td colspan="2" class="text-center py-4">Data tidak ditemukan.</td>
                 </tr>
                 <tr v-else v-for="(item, index) in items" :key="item.id">
-                  <td>{{ item.kota_kabupaten }}</td>
-                  <td>{{ item.provinsi_rel ? item.provinsi_rel.provinsi : '-' }}</td>
+                  <td>{{ item.jenis }}</td>
                   <td>
                     <button @click="openForm(item)" class="btn btn-sm btn-primary me-2">Edit</button>
                     <button @click="confirmDelete(item)" class="btn btn-sm btn-danger">Hapus</button>
@@ -85,27 +79,18 @@
       </div>
 
       <!-- Modal Form -->
-      <div class="modal fade" id="kotaModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="kotaModalLabel" aria-hidden="true">
+      <div class="modal fade" id="sdmJenisModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="sdmJenisModalLabel" aria-hidden="true">
         <div class="modal-dialog">
           <div class="modal-content">
             <div class="modal-header">
-              <h5 class="modal-title" id="kotaModalLabel">{{ isEdit ? 'Edit' : 'Tambah' }} Kota/Kabupaten</h5>
+              <h5 class="modal-title" id="sdmJenisModalLabel">{{ isEdit ? 'Edit' : 'Tambah' }} Jenis SDM</h5>
               <button type="button" class="btn-close" @click="closeForm" aria-label="Close"></button>
             </div>
             <form @submit.prevent="submitForm">
               <div class="modal-body">
                 <div class="mb-3">
-                  <label class="form-label">Provinsi</label>
-                  <select class="select2 form-control" id="select-provinsi" style="width: 100%; height: 36px" required>
-                    <option value="" disabled selected>Pilih Provinsi...</option>
-                    <option v-for="prov in provinsiOptions" :key="prov.id" :value="prov.id">
-                      {{ prov.provinsi }}
-                    </option>
-                  </select>
-                </div>
-                <div class="mb-3">
-                  <label class="form-label">Nama Kota / Kabupaten</label>
-                  <input type="text" class="form-control" v-model="formData.kota_kabupaten" required>
+                  <label class="form-label">Jenis SDM</label>
+                  <input type="text" class="form-control" v-model="formData.jenis" required>
                 </div>
               </div>
               <div class="modal-footer">
@@ -123,14 +108,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, nextTick } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
 import Swal from 'sweetalert2'
 import 'sweetalert2/dist/sweetalert2.min.css'
 
-// API base config
+// API base config (sesuaikan dengan environment)
 const api = axios.create({
-  baseURL: 'http://localhost:8000/api',
+  baseURL: 'http://localhost:8000/api', // asumsi port backend 8000
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
@@ -150,12 +135,11 @@ api.interceptors.request.use(config => {
 const items = ref([])
 const total = ref(0)
 const loading = ref(false)
-const provinsiOptions = ref([])
 const params = ref({
   page: 1,
   limit: 10,
   search: '',
-  sort_by: 'kota_kabupaten',
+  sort_by: 'jenis',
   sort_dir: 'asc'
 })
 
@@ -169,8 +153,7 @@ const isEdit = ref(false)
 const loadingSubmit = ref(false)
 const formData = ref({
   id: null,
-  kota_kabupaten: '',
-  provinsi: ''
+  jenis: ''
 })
 
 let searchTimeout = null
@@ -198,19 +181,10 @@ const toggleSort = (column) => {
   fetchData()
 }
 
-const fetchProvinsiOptions = async () => {
-  try {
-    const response = await api.post('/provinsi/all')
-    provinsiOptions.value = response.data.data
-  } catch (error) {
-    console.error('Error fetching provinsi options:', error)
-  }
-}
-
 const fetchData = async () => {
   try {
     loading.value = true
-    const response = await api.post('/kota/list', {
+    const response = await api.post('/sdm-jenis/list', {
       page: params.value.page,
       limit: params.value.limit,
       search: params.value.search,
@@ -243,40 +217,18 @@ const openForm = (item = null) => {
     isEdit.value = true
     formData.value = {
       id: item.id,
-      kota_kabupaten: item.kota_kabupaten,
-      provinsi: item.provinsi
+      jenis: item.jenis
     }
   } else {
     isEdit.value = false
     formData.value = {
       id: null,
-      kota_kabupaten: '',
-      provinsi: ''
+      jenis: ''
     }
   }
-  
   if (formModal) {
     formModal.show()
   }
-
-  // Initialize and Sync state to Select2 visually after modal opens
-  setTimeout(() => {
-    const selectEl = window.$('#select-provinsi')
-    
-    if (!selectEl.hasClass("select2-hidden-accessible")) {
-      selectEl.select2({
-        dropdownParent: window.$('#kotaModal'),
-        placeholder: 'Pilih Provinsi...'
-      })
-      
-      selectEl.on('change', function () {
-        formData.value.provinsi = window.$(this).val()
-      })
-    }
-    
-    const val = formData.value.provinsi || ''
-    selectEl.val(val).trigger('change')
-  }, 200)
 }
 
 const closeForm = () => {
@@ -284,8 +236,7 @@ const closeForm = () => {
     formModal.hide()
   }
   setTimeout(() => {
-    formData.value = { id: null, kota_kabupaten: '', provinsi: '' }
-    window.$('#select-provinsi').val('').trigger('change')
+    formData.value = { id: null, jenis: '' }
   }, 300) // reset after animation
 }
 
@@ -293,15 +244,13 @@ const submitForm = async () => {
   try {
     loadingSubmit.value = true
     if (isEdit.value) {
-      await api.post('/kota/update', {
+      await api.post('/sdm-jenis/update', {
         id: formData.value.id,
-        kota_kabupaten: formData.value.kota_kabupaten,
-        provinsi: formData.value.provinsi
+        jenis: formData.value.jenis
       })
     } else {
-      await api.post('/kota/create', {
-        kota_kabupaten: formData.value.kota_kabupaten,
-        provinsi: formData.value.provinsi
+      await api.post('/sdm-jenis/create', {
+        jenis: formData.value.jenis
       })
     }
     closeForm()
@@ -326,7 +275,7 @@ const submitForm = async () => {
 const confirmDelete = async (item) => {
   const result = await Swal.fire({
     title: 'Konfirmasi Hapus',
-    html: `Apakah Anda yakin ingin menghapus kota/kabupaten <strong>${item.kota_kabupaten}</strong>?`,
+    html: `Apakah Anda yakin ingin menghapus jenis sdm <strong>${item.jenis}</strong>?`,
     icon: 'warning',
     showCancelButton: true,
     confirmButtonColor: '#fa896b', // danger color in template
@@ -343,7 +292,7 @@ const confirmDelete = async (item) => {
 
 const executeDelete = async (id) => {
   try {
-    await api.post('/kota/delete', { id })
+    await api.post('/sdm-jenis/delete', { id })
     fetchData() // Refresh list
     
     // Show SweetAlert success
@@ -367,9 +316,8 @@ const executeDelete = async (id) => {
 
 onMounted(() => {
   if (window.bootstrap) {
-    formModal = new window.bootstrap.Modal(document.getElementById('kotaModal'))
+    formModal = new window.bootstrap.Modal(document.getElementById('sdmJenisModal'))
   }
-  fetchProvinsiOptions()
   fetchData()
 })
 </script>

@@ -33,6 +33,11 @@ const router = createRouter({
           path: '/kota',
           name: 'KotaKabupaten',
           component: () => import('../views/master/Kota/KotaList.vue')
+        },
+        {
+          path: '/sdm-jenis',
+          name: 'SdmJenis',
+          component: () => import('../views/sdm/SdmJenis/SdmJenisList.vue')
         }
       ]
     }
