@@ -27,4 +27,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/kota/create', [App\Http\Controllers\MsKotaKabController::class, 'create']);
     Route::post('/kota/update', [App\Http\Controllers\MsKotaKabController::class, 'update']);
     Route::post('/kota/delete', [App\Http\Controllers\MsKotaKabController::class, 'delete']);
+
+    // SdmJenisController routes
+    Route::post('/sdm-jenis/list', [\App\Http\Controllers\SdmJenisController::class, 'list']);
+    Route::post('/sdm-jenis/all', [\App\Http\Controllers\SdmJenisController::class, 'all']);
+    Route::post('/sdm-jenis/detail', [\App\Http\Controllers\SdmJenisController::class, 'detail']);
+    Route::post('/sdm-jenis/create', [\App\Http\Controllers\SdmJenisController::class, 'create']);
+    Route::post('/sdm-jenis/update', [\App\Http\Controllers\SdmJenisController::class, 'update']);
+    Route::post('/sdm-jenis/delete', [\App\Http\Controllers\SdmJenisController::class, 'delete']);
 });
