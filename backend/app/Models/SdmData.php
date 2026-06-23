@@ -23,11 +23,11 @@ class SdmData extends Model
 
     public function kotaKabKtp()
     {
-        return $this->belongsTo(KotaKab::class, 'kota_kab_ktp', 'id');
+        return $this->belongsTo(MsKotaKab::class, 'kota_kab_ktp', 'id');
     }
 
     public function kotaKabDomisili()
     {
-        return $this->belongsTo(KotaKab::class, 'kota_kab_domisili', 'id');
+        return $this->belongsTo(MsKotaKab::class, 'kota_kab_domisili', 'id');
     }
 }
