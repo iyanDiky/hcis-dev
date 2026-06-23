@@ -107,6 +107,11 @@ const menuItems = ref([
         title: 'Jenis SDM',
         path: '/sdm-jenis',
         icon: 'ti ti-circle'
+      },
+      {
+        title: 'Data Pribadi',
+        path: '/sdm-data',
+        icon: 'ti ti-circle'
       }
     ]
   }

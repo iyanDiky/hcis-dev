@@ -1,53 +1,96 @@
-# Pembuatan CRUD untuk Jenis SDM (sdm_jenis)
+# Perencanaan (Planning) Pembuatan CRUD Tabel `sdm_data`
 
-## Deskripsi Singkat
-Modul ini bertujuan untuk menyediakan fitur CRUD lengkap (API Backend + Frontend Vue) untuk master data Jenis SDM (`sdm_jenis`). Berbeda dengan `ms_kota_kab`, tabel `sdm_jenis` berdiri sendiri dan tidak memiliki relasi dropdown *(foreign key)* ke tabel lain pada saat *Create* atau *Edit*. 
-Struktur fungsionalitas UI (seperti pagination, search, sorting, dan sweetalert) akan 100% mengikuti standar modul `ms_provinsi`. Perbedaan utamanya ada pada tata letak *Sidebar* Menu, di mana menu ini berada di bawah *dropdown* khusus bernama **SDM**.
+Dokumen ini berisi panduan teknis langkah demi langkah untuk melakukan implementasi fitur **CRUD (Create, Read, Update, Delete)** untuk tabel `sdm_data`. Panduan ini dirancang agar mudah diikuti oleh programmer maupun AI/model bahasa (LLM) untuk eksekusi kode.
 
-## Skema Database
-Berdasarkan migration yang sudah ada:
-- **Tabel:** `sdm_jenis`
-- **Kolom Utama:**
-  - `id` (UUIDv7, Primary Key)
-  - `jenis` (String)
-- **Kolom Audit Trail:** `created_at`, `created_by`, `updated_at`, `updated_by`, `delete_at`, `delete_by` (Menggunakan SoftDeletes kustom pada Laravel).
+---
 
-## Spesifikasi Backend (Laravel API)
-1. **Model (`SdmJenis.php`):**
-   - Gunakan trait `HasUuids` (disesuaikan dengan UUIDv7 via `Str::orderedUuid()`).
-   - Implementasikan SoftDeletes kustom dengan override `const DELETED_AT = 'delete_at';`.
-   - Setup field `fillable` untuk `jenis` dan audit log.
-2. **Controller (`SdmJenisController.php`):**
-   - Harus menggunakan metode **POST** untuk semua *endpoint* (*RPC-style*).
-   - Buat endpoint berikut:
-     - `POST /api/sdm-jenis/list`: Untuk Datatable dengan *pagination*, *search* (`ilike`), dan *sorting* secara *case-insensitive* (`ORDER BY LOWER(jenis)`).
-     - `POST /api/sdm-jenis/detail`: Mengambil data tunggal.
-     - `POST /api/sdm-jenis/create`: Menyimpan data baru dengan audit trail dari `$request->user()`.
-     - `POST /api/sdm-jenis/update`: Mengubah data *existing*.
-     - `POST /api/sdm-jenis/delete`: Melakukan *SoftDelete*, wajib simpan `delete_by` sebelum delete.
-3. **Routing (`api.php`):** 
-   - Daftarkan semua *route* `sdm-jenis` baru di dalam *middleware* `auth:sanctum`.
-4. **Database Seeding (`SdmJenisSeeder.php`):**
-   - Buat seeder untuk memasukkan data awal secara berurutan.
-   - Data jenis SDM yang harus di-seed: "organik", "bakat", "tenaga alih daya", "pengurus", "dewan komite", "dewan pengawas syariah", "staf khusus".
-   - Pastikan setiap id di-generate menggunakan `Str::orderedUuid()`.
+## 1. Persiapan Database & Model
 
-## Spesifikasi Frontend (Vue 3)
-1. **Komponen Daftar Jenis SDM (`SdmJenisList.vue`):**
-   - **Tabel Server-side:** Menggunakan UI HTML Datatable bawaan template.
-   - **Fitur Tabel:** *Pagination*, fitur urutkan (*Sort*), dan *Search Real-time* (debounce 500ms).
-   - **Kolom Tabel:** Tampilkan kolom "Jenis SDM" dan "Aksi" (Tombol Edit dan Hapus).
-2. **Fitur Tambah/Edit (Bootstrap Modal):**
-   - Form menggunakan Bootstrap Modal berukuran *medium* (*static backdrop*).
-   - **Form Fields:** Hanya berisi 1 (satu) input teks untuk "Jenis SDM".
-3. **Konfirmasi & Notifikasi (SweetAlert2):**
-   - Tombol Hapus memicu dialog konfirmasi (`warning` icon).
-   - Munculkan *popup* centang hijau (otomatis tertutup dalam 1.5 detik) jika Tambah/Edit/Hapus berhasil.
-4. **Sidebar Navigation (`Sidebar.vue`):**
-   - Buat objek `dropdown` baru dengan judul **"SDM"** yang sejajar letaknya di bawah/setelah *dropdown* **"Master"** (tetapi tetap di bawah *cap* header **"Data"**).
-   - Tambahkan menu **"Jenis SDM"** sebagai *child* dari grup **"SDM"** tersebut dengan *route path* `/sdm-jenis`.
-   - Rute ini harus dikonfigurasikan juga di `router/index.js`.
+Tabel `sdm_data` sudah ada di database beserta migrasinya. Berikut adalah struktur utama yang perlu diperhatikan:
+- **Field Unik (Unique)**: `email`, `nik`, dan `nomor_telp`.
+- **Foreign Keys**: `kota_kab_ktp` dan `kota_kab_domisili` berelasi ke tabel `ms_kota_kab`.
 
-## Catatan Tambahan Bagi Developer
-- Selalu tiru persis pola balikan JSON dan penamaan standardisasi dari `MsProvinsiController.php`.
-- Perhatikan bahwa menu navigasinya berbeda dari tugas sebelumnya. Jenis SDM tidak diletakkan di dalam *Master*, melainkan di *dropdown* baru bernama *SDM*.
+### Langkah Pembuatan Model `SdmData`
+1. Buat file model di `backend/app/Models/SdmData.php`.
+2. Gunakan *trait* yang sesuai dengan standar aplikasi: `HasUuids`, `SoftDeletes`, dan `AuditTrail`.
+3. Definisikan tabel: `protected $table = 'sdm_data';`
+4. Sesuaikan konstanta soft delete: `public const DELETED_AT = 'delete_at';`
+5. Atur `$fillable` agar menampung seluruh kolom isian: `email`, `nik`, `nama`, `jk`, `tempat_lahir`, `tanggal_lahir`, `agama`, `gol_darah`, `status_pernikahan`, `foto`, `spesimen_tanda_tangan`, `spesimen_paraf`, `npwp`, `nomor_telp`, `alamat_ktp`, `kota_kab_ktp`, `alamat_domisili`, `kota_kab_domisili`.
+6. Buat relasi (*belongsTo*) ke `MsKotaKab` untuk kedua field *foreign key* tersebut. (misal function `kotaKtpRel()` dan `kotaDomisiliRel()`).
+
+---
+
+## 2. Pembuatan Backend API (Controller & Routes)
+
+### Langkah Pembuatan Controller
+1. Buat `backend/app/Http/Controllers/SdmDataController.php`.
+2. Implementasikan 5 endpoint utama dengan metode `POST` layaknya standar RPC:
+   - `list`: Mengambil data list lengkap dengan pagination, searching (`ilike`), dan pengurutan (sorting) `ORDER BY LOWER(nama)`. Sertakan relasi (`with`) ke tabel kota/kabupaten.
+   - `detail`: Mengambil 1 baris spesifik menggunakan `id`.
+   - `create`: Menerima JSON *payload* dan melakukan validasi:
+     - `email`: `required|email|unique:sdm_data,email`
+     - `nik`: `required|string|max:16|unique:sdm_data,nik`
+     - `nomor_telp`: `required|string|max:15|unique:sdm_data,nomor_telp`
+     - Kolom wajib lainnya sesuai struktur database.
+   - `update`: Menerima `id` dan melakukan *update* data. Pastikan validasi *unique* mengabaikan ID saat ini (contoh: `unique:sdm_data,email,` . $request->id).
+   - `delete`: Melakukan pencarian berdasarkan `id` lalu melakukan *soft delete* (dan isi field `delete_by` menggunakan user yang sedang *login* atau `'system'`).
+
+### Langkah Registrasi Route
+1. Buka file `backend/routes/api.php`.
+2. Di dalam *group* middleware `auth:sanctum`, tambahkan definisi routes:
+   - `Route::post('/sdm-data/list', [\App\Http\Controllers\SdmDataController::class, 'list']);`
+   - `Route::post('/sdm-data/detail', [\App\Http\Controllers\SdmDataController::class, 'detail']);`
+   - `Route::post('/sdm-data/create', [\App\Http\Controllers\SdmDataController::class, 'create']);`
+   - `Route::post('/sdm-data/update', [\App\Http\Controllers\SdmDataController::class, 'update']);`
+   - `Route::post('/sdm-data/delete', [\App\Http\Controllers\SdmDataController::class, 'delete']);`
+
+---
+
+## 3. Pembuatan Frontend (Vue)
+
+### Pembuatan Component Vue
+1. Buat folder `frontend/src/views/sdm/SdmData`.
+2. Buat file `SdmDataList.vue` di dalam folder tersebut.
+3. Konstruksi komponen ini sangat mirip dengan `MsProvinsi` atau `MsKotaKab`. Komponen ini harus memiliki:
+   - **Tabel Data**: Datatables interaktif dengan fitur *search debounce*, *pagination*, dan *sorting*. 
+   - **Tampilkan kolom utama di tabel**: Nama, NIK, Email, No. Telp, Jenis Kelamin (sebagai perwakilan saja agar tabel tidak terlalu lebar). Tombol Aksi (Edit, Hapus) di kolom terakhir.
+   - **Modal Form Add/Edit**: Modal statis dari Bootstrap yang memuat *form input*. Karena fieldnya cukup banyak, gunakan layout **Grid System (col-md-6)** agar form tidak memanjang sangat panjang ke bawah.
+   - Gunakan `SweetAlert2` untuk konfirmasi hapus data dan notifikasi sukses.
+
+### Ketentuan Field Form di Vue
+- **Text Input biasa**: `email`, `nik`, `nama`, `tempat_lahir`, `npwp`, `nomor_telp`, dll.
+- **Date Picker**: `tanggal_lahir` (gunakan tipe input `date`).
+- **Select Dropdown (Statis)**: 
+  - `jk`: L (Laki-laki), P (Perempuan).
+  - `agama`: Islam, Kristen, Katolik, dll.
+  - `gol_darah`: A, B, AB, O.
+  - `status_pernikahan`: B (Belum Menikah), M (Menikah), P (Pernah Menikah).
+- **Select Dropdown (Dinamis dari API API kota)**: `kota_kab_ktp` dan `kota_kab_domisili`.
+  - Pastikan untuk mengambil *list* seluruh kota menggunakan endpoint `/kota/all` dari `MsKotaKabController` (buat endpoint `/all` jika belum tersedia, atau manfaatkan `/kota/list` dengan limit besar).
+  - Integrasikan library Select2 untuk mempercantik pencarian dropdown kota.
+- **Textarea**: `alamat_ktp` dan `alamat_domisili`.
+- **Upload File**: Untuk `foto`, `spesimen_tanda_tangan`, `spesimen_paraf`, jika belum ada instruksi untuk *storage handling* file, gunakan input `text` biasa untuk saat ini, atau siapkan tempat yang bisa diganti input file nantinya. (Direkomendasikan menggunakan input string URL teks sementara atau konfirmasi lebih lanjut untuk penggunaan `Storage`).
+
+### Integrasi Router dan Sidebar
+1. Buka file `frontend/src/router/index.js`.
+2. Daftarkan route baru di bawah *children route* utama (`/`):
+   ```javascript
+   {
+       path: '/sdm-data',
+       name: 'SdmData',
+       component: () => import('../views/sdm/SdmData/SdmDataList.vue')
+   }
+   ```
+3. Buka file `frontend/src/components/Sidebar.vue`.
+4. Tambahkan *sub-menu* `Data Pribadi` (atau Data SDM) di bawah menu induk **SDM** (yang ada di dalam grup **DATA**). Pastikan hirarkinya sejajar dengan menu **Jenis SDM** (sdm_jenis) yang sudah dibuat sebelumnya.
+
+---
+
+## 4. Langkah Pengujian (Testing)
+
+Setelah diimplementasikan, segera jalankan pengetesan:
+1. Akses halaman melalui navigasi sidebar.
+2. Buat data baru dan pastikan form modal berfungsi penuh.
+3. Cobalah memasukkan `email`, `nik`, atau `nomor_telp` yang sudah ada untuk menguji bahwa respon gagal 422 *(Unprocessable Entity)* berjalan dengan benar, dan tangkap pesan error dari API untuk memunculkan di frontend via SweetAlert/Toaster.
+4. Pastikan pencarian kota di dalam *Select2* berfungsi.
+5. Coba perbarui data (*Edit*) dan hapus data (*Delete*) untuk memverifikasi SoftDelete dan AuditTrail.

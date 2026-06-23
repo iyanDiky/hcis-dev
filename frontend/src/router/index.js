@@ -38,6 +38,11 @@ const router = createRouter({
           path: '/sdm-jenis',
           name: 'SdmJenis',
           component: () => import('../views/sdm/SdmJenis/SdmJenisList.vue')
+        },
+        {
+          path: '/sdm-data',
+          name: 'SdmData',
+          component: () => import('../views/sdm/SdmData/SdmDataList.vue')
         }
       ]
     }

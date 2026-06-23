@@ -164,4 +164,20 @@ class MsKotaKabController extends Controller
             'message' => 'Data berhasil dihapus'
         ]);
     }
+
+    /**
+     * GET/POST /api/kota/all
+     */
+    public function all(Request $request)
+    {
+        $data = MsKotaKab::select('id', 'kota_kabupaten', 'provinsi')
+            ->with('provinsiRel:id,provinsi')
+            ->orderBy('kota_kabupaten', 'asc')
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $data
+        ]);
+    }
 }
